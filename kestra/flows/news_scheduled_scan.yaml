@@ -1,0 +1,96 @@
+# ────────────────────────────────────────────────────────────
+# Kestra Flow: news_scheduled_scan
+# ────────────────────────────────────────────────────────────
+# Scheduled scan over the default keyword list.
+# Iterates sequentially with idempotency, scrape, and
+# human approval gate at each keyword.
+#
+# Cron: every 6 hours (0 */6 * * *)
+# Can also be triggered manually from the Kestra UI.
+# ────────────────────────────────────────────────────────────
+
+id: news_scheduled_scan
+namespace: news_monitor
+
+variables:
+  demo_server: "http://host.docker.internal:3100"
+  scan_keywords: '["markets", "acquisition", "cyberattack", "inflation"]'
+
+triggers:
+  - id: every_6h
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 */6 * * *"
+
+tasks:
+  # ──────────────────────────────────────────────────────────
+  # Iterate over each keyword sequentially via ForEach.
+  # Within each iteration, use a single top-level If for
+  # cached check; subsequent branching uses runIf.
+  # ──────────────────────────────────────────────────────────
+  - id: scan_all
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ vars.scan_keywords | json }}"
+    tasks:
+      # Idempotency check per keyword
+      - id: check_run
+        type: io.kestra.plugin.core.http.Request
+        uri: "{{ vars.demo_server }}/api/runs/scan-{{ taskrun.value }}-{{ now() | dateFormat('yyyyMMddHH') }}"
+        method: GET
+        options:
+          allowFailed: true
+
+      # One top-level If per iteration
+      - id: if_cached
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ outputs.check_run.code == 200 }}"
+        then:
+          - id: log_cached
+            type: io.kestra.plugin.core.log.Log
+            level: INFO
+            message: "[scan] {{ taskrun.value }} → cached ({{ json(outputs.check_run.body).status }})"
+        else:
+          # Scrape this keyword
+          - id: scrape
+            type: io.kestra.plugin.core.http.Request
+            uri: "{{ vars.demo_server }}/api/scrape"
+            method: POST
+            contentType: APPLICATION_JSON
+            body: |
+              {
+                "keyword": "{{ taskrun.value }}",
+                "runId": "scan-{{ taskrun.value }}-{{ now() | dateFormat('yyyyMMddHH') }}"
+              }
+
+          # Terminal state → log
+          - id: log_terminal
+            type: io.kestra.plugin.core.log.Log
+            runIf: "{{ json(outputs.scrape.body).status == 'error' or json(outputs.scrape.body).status == 'not_found' }}"
+            level: INFO
+            message: "[scan] {{ taskrun.value }} → {{ json(outputs.scrape.body).status }}"
+
+          # Needs approval → Pause then log approved
+          - id: pause_approval
+            type: io.kestra.plugin.core.flow.Pause
+            runIf: "{{ json(outputs.scrape.body).status == 'completed' and json(outputs.scrape.body).needsApproval == true }}"
+            pauseDuration: PT24H
+
+          - id: log_approved
+            type: io.kestra.plugin.core.log.Log
+            runIf: "{{ json(outputs.scrape.body).status == 'completed' and json(outputs.scrape.body).needsApproval == true }}"
+            level: INFO
+            message: "[scan] {{ taskrun.value }} → approved"
+
+          # Auto-approved
+          - id: log_auto_approved
+            type: io.kestra.plugin.core.log.Log
+            runIf: "{{ json(outputs.scrape.body).status == 'completed' and (json(outputs.scrape.body).needsApproval == false or json(outputs.scrape.body).needsApproval == null) }}"
+            level: INFO
+            message: "[scan] {{ taskrun.value }} → {{ json(outputs.scrape.body).status }} (auto-approved)"
+
+  # ──────────────────────────────────────────────────────────
+  # Summary
+  # ──────────────────────────────────────────────────────────
+  - id: log_summary
+    type: io.kestra.plugin.core.log.Log
+    level: INFO
+    message: "[scan] All keywords processed at {{ now() }}"

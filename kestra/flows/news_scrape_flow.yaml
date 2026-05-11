@@ -1,0 +1,101 @@
+# ────────────────────────────────────────────────────────────
+# Kestra Flow: news_scrape_flow
+# ────────────────────────────────────────────────────────────
+# Scrape một keyword duy nhất với idempotency check và
+# human approval gate (Pause/Resume).
+#
+# Edge cases handled:
+#   • markets     → happy path (auto-approved)
+#   • acquisition → approval + .headline fallback
+#   • cyberattack → fail-once retry (internal) + approval
+#   • inflation   → slow page
+#   • volcano     → not found
+#
+# Trigger: manual (UI hoặc API)
+# ────────────────────────────────────────────────────────────
+
+id: news_scrape_flow
+namespace: news_monitor
+
+inputs:
+  - id: keyword
+    type: STRING
+    required: true
+    description: "Keyword to search for (markets, acquisition, cyberattack, inflation, volcano)"
+  - id: runId
+    type: STRING
+    required: false
+    description: "Optional run ID for idempotency"
+  - id: timeoutMs
+    type: INT
+    required: false
+    description: "Optional scrape timeout in milliseconds"
+
+variables:
+  demo_server: "http://host.docker.internal:3100"
+
+tasks:
+  # ──────────────────────────────────────────────────────────
+  # Step 1 — Idempotency check (always runs, safe to call
+  #           without runId — server returns 404)
+  # ──────────────────────────────────────────────────────────
+  - id: check_run
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.demo_server }}/api/runs/{{ inputs.runId }}"
+    method: GET
+    options:
+      allowFailed: true
+
+  # ──────────────────────────────────────────────────────────
+  # Step 2 — One top-level If for cached check.
+  #           If cached → log and skip everything else.
+  #           Else     → scrape + post-scrape tasks guarded
+  #                      by runIf.
+  # ──────────────────────────────────────────────────────────
+  - id: if_cached
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.runId != null and inputs.runId != '' and outputs.check_run.code == 200 }}"
+    then:
+      - id: log_cached
+        type: io.kestra.plugin.core.log.Log
+        level: INFO
+        message: "{{ json(outputs.check_run.body) | merge({'approval': 'cached'}) | json }}"
+    else:
+      # ── Step 3 — Scrape (unconditional in this branch) ──
+      - id: scrape
+        type: io.kestra.plugin.core.http.Request
+        uri: "{{ vars.demo_server }}/api/scrape"
+        method: POST
+        contentType: APPLICATION_JSON
+        body: |
+          {
+            "keyword": "{{ inputs.keyword }}",
+            "runId": "{{ inputs.runId }}",
+            "timeoutMs": {{ inputs.timeoutMs }}
+          }
+
+      # ── Step 4 — Terminal states (error / not_found) ──
+      - id: log_terminal
+        type: io.kestra.plugin.core.log.Log
+        runIf: "{{ json(outputs.scrape.body).status == 'error' or json(outputs.scrape.body).status == 'not_found' }}"
+        level: INFO
+        message: "{{ json(outputs.scrape.body) | merge({'approval': 'not_needed'}) | json }}"
+
+      # ── Step 5 — Approval gate (Pause / Resume) ──
+      - id: pause_approval
+        type: io.kestra.plugin.core.flow.Pause
+        runIf: "{{ json(outputs.scrape.body).status == 'completed' and json(outputs.scrape.body).needsApproval == true }}"
+        pauseDuration: PT24H
+
+      - id: log_approved
+        type: io.kestra.plugin.core.log.Log
+        runIf: "{{ json(outputs.scrape.body).status == 'completed' and json(outputs.scrape.body).needsApproval == true }}"
+        level: INFO
+        message: "{{ json(outputs.scrape.body) | merge({'approval': 'approved'}) | json }}"
+
+      # ── Step 6 — Auto-approved (completed, not sensitive) ──
+      - id: log_auto_approved
+        type: io.kestra.plugin.core.log.Log
+        runIf: "{{ json(outputs.scrape.body).status == 'completed' and (json(outputs.scrape.body).needsApproval == false or json(outputs.scrape.body).needsApproval == null) }}"
+        level: INFO
+        message: "{{ json(outputs.scrape.body) | merge({'approval': 'auto_approved'}) | json }}"
