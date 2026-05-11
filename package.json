@@ -6,7 +6,13 @@
     "setup": "npx playwright install chromium",
     "trigger:dev": "trigger dev",
     "trigger:deploy": "trigger deploy",
-    "trigger:run": "trigger run"
+    "trigger:run": "trigger run",
+    "temporal:worker": "node temporal/worker.js",
+    "temporal:start": "node temporal/client.js start",
+    "temporal:start-scan": "node temporal/client.js start-scan",
+    "temporal:signal": "node temporal/client.js signal",
+    "temporal:list": "node temporal/client.js list",
+    "temporal:help": "node temporal/client.js help"
   },
   "dependencies": {
     "express": "^4.21.0",
