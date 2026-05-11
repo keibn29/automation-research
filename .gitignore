@@ -1,0 +1,12 @@
+node_modules/
+demo/news-monitor-approval-bot/runtime/
+
+# Trigger.dev
+.env
+.trigger/
+
+# Python (Prefect integration)
+__pycache__/
+*.pyc
+.venv/
+venv/

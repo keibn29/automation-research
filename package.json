@@ -1,0 +1,19 @@
+{
+  "name": "docs-research",
+  "private": true,
+  "scripts": {
+    "start": "node demo/news-monitor-approval-bot/server.js",
+    "setup": "npx playwright install chromium",
+    "trigger:dev": "trigger dev",
+    "trigger:deploy": "trigger deploy",
+    "trigger:run": "trigger run"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "playwright": "^1.50.0",
+    "@trigger.dev/sdk": "^4.4.5"
+  },
+  "devDependencies": {
+    "trigger.dev": "^4.4.5"
+  }
+}

@@ -1,0 +1,51 @@
+[
+  {
+    "name": "normal-article",
+    "description": "Standard scrape — finds article matching 'markets'",
+    "runId": "demo-normal-001",
+    "keyword": "markets",
+    "expectedStatus": "completed",
+    "expectedNeedsApproval": false,
+    "expectedUsedFallbackSelector": false
+  },
+  {
+    "name": "approval-required-fallback-selector",
+    "description": "Article with sensitive keyword 'acquisition' AND uses .headline instead of h1",
+    "runId": "demo-approval-002",
+    "keyword": "acquisition",
+    "expectedStatus": "completed",
+    "expectedNeedsApproval": true,
+    "expectedUsedFallbackSelector": true
+  },
+  {
+    "name": "fail-once-retry",
+    "description": "Article detail page fails with 500 on first request, then succeeds on retry",
+    "runId": "demo-retry-003",
+    "keyword": "cyberattack",
+    "expectedStatus": "completed",
+    "expectedNeedsApproval": true
+  },
+  {
+    "name": "slow-page",
+    "description": "Article detail page takes ~7s to render; requires longer timeout",
+    "runId": "demo-slow-004",
+    "keyword": "inflation",
+    "timeoutMs": 15000,
+    "expectedStatus": "completed",
+    "expectedNeedsApproval": false
+  },
+  {
+    "name": "no-result",
+    "description": "Keyword that matches no article — expects not_found status",
+    "runId": "demo-notfound-005",
+    "keyword": "volcano",
+    "expectedStatus": "not_found"
+  },
+  {
+    "name": "idempotency-duplicate",
+    "description": "Same runId as normal-article — should return cached result with fromCache: true",
+    "runId": "demo-normal-001",
+    "keyword": "markets",
+    "expectedFromCache": true
+  }
+]

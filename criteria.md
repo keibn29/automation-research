@@ -1,0 +1,17 @@
+# Tiêu chí chọn Automation Orchestrator cho Browser Automation
+
+Bảng này dùng để đánh giá nền tảng điều phối automation nhiều website ở mức production, ưu tiên quan sát vận hành, độ tin cậy và khả năng mở rộng lâu dài.
+
+| Criterion                      | Cần có                                                                                                                                          | Cảnh báo                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Dashboard                      | Theo dõi flow/run/step, backlog, lỗi, retry, duration, success rate, screenshot/log/artifact                                                    | Chỉ có log rời rạc; khó biết job kẹt ở đâu                               |
+| Reliability                    | Workflow sống sót qua crash/redeploy, resume đúng bước, có execution history                                                                    | Worker chết là mất state; phải chạy lại từ đầu                           |
+| Retry Safety                   | Chỉ retry ở mức workflow/run; có guard chống duplicate hoặc side-effect nguy hiểm trước khi retry                                               | Retry mù sau submit/update; dễ tạo dữ liệu trùng hoặc thao tác nguy hiểm |
+| Idempotency                    | Có workflow ID/idempotency key; duplicate trigger không tạo side-effect trùng                                                                   | Có thể tạo trùng booking/reference                                       |
+| Human Review                   | Có queue duyệt; ops xem dữ liệu, diff, screenshot; approve/reject/correct/resume                                                                | Lỗi phải xử lý qua chat, SSH hoặc sửa DB                                 |
+| Browser Automation             | Tích hợp Playwright tốt; hỗ trợ browser context, artifact, worker ổn định                                                                       | Browser script rời rạc, khó scale/debug                                  |
+| Scheduling                     | Hỗ trợ lịch chạy, event trigger, retry schedule, pause/resume và chống chạy trùng                                                               | Cron rời rạc; dễ mất job hoặc chạy trùng                                 |
+| Scaling & Rate Limits          | Có queue/backpressure, worker scale ngang, throttle theo website/account/domain, kill switch                                                    | Mở browser vô hạn; một site lỗi làm nghẽn toàn hệ thống                  |
+| Security                       | Secrets trong Vault/Secret Manager; RBAC; mask PII/token trong log/artifact                                                                     | Password/cookie nằm trong file/env; log lộ PII                           |
+| AI Fallback & Self-Healing     | Xử lý lỗi nhỏ an toàn như website đổi UI nhẹ: fallback selector, verify kết quả, thông báo user khi cần rồi tiếp tục flow gốc sang bước kế tiếp | AI tự sửa mù; lỗi nhỏ làm fail toàn flow hoặc gây sai dữ liệu            |
+| Learning Curve & Extensibility | Dễ onboarding; flow/versioning rõ; reusable adapters; test/dry-run/canary                                                                       | Flow thành spaghetti; khó review/test; phụ thuộc vài cá nhân             |

@@ -1,0 +1,8 @@
+# News Monitor Approval Bot — Prefect Integration
+# Usage: pip install -r prefect/requirements.txt
+#
+# Prefect >= 2.14 required for pause_flow_run(wait_for_input=...)
+# httpx for HTTP calls to the demo server
+
+prefect>=2.14.0
+httpx>=0.27.0

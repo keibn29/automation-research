@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "title": "Global Markets Rally on Tech Earnings",
+    "author": "Alice Chen",
+    "publishedAt": "2026-05-07T09:00:00Z",
+    "summary": "Stock markets surged today as major tech companies reported better-than-expected quarterly earnings, driving the S&P 500 to a new all-time high. Investors remain optimistic about the economic outlook.",
+    "content": "Markets rallied across all major indices today. The S&P 500 gained 2.3%, the Dow Jones Industrial Average rose 1.8%, and the Nasdaq Composite jumped 3.1%, driven by strong earnings reports from Apple, Microsoft, and Google parent Alphabet.\n\nAnalysts pointed to resilient consumer spending and easing inflation concerns as key factors behind the broad-based rally. 'The market is pricing in a soft landing scenario,' said Chief Market Strategist Jane Roberts at Goldman Sachs.",
+    "tags": ["markets", "earnings", "stocks"],
+    "selectors": { "title": "h1" },
+    "sensitive": false,
+    "sensitiveReasons": [],
+    "failOnce": false,
+    "slowResponse": false
+  },
+  {
+    "id": 2,
+    "title": "Tech Giant Announces Major Acquisition",
+    "author": "Bob Martinez",
+    "publishedAt": "2026-05-06T14:30:00Z",
+    "summary": "In a landmark deal, a leading technology company has announced plans to acquire a promising AI startup for $2.5 billion, marking one of the largest acquisitions this year. The deal is expected to close within six months pending regulatory approval.",
+    "content": "The acquisition represents a strategic move to strengthen the company's position in the rapidly growing artificial intelligence market. The startup, founded just three years ago, has developed cutting-edge natural language processing technology that complements the acquirer's existing product suite.\n\nIndustry experts say the deal could reshape the competitive landscape in enterprise AI, potentially triggering a wave of consolidation in the sector. Regulators are expected to scrutinize the transaction closely given its size and market implications.",
+    "tags": ["acquisition", "tech", "ai"],
+    "selectors": { "title": ".headline" },
+    "sensitive": true,
+    "sensitiveReasons": ["acquisition"],
+    "failOnce": false,
+    "slowResponse": false
+  },
+  {
+    "id": 3,
+    "title": "Breaking: Major Cyberattack Hits Financial Institutions",
+    "author": "Carol Davis",
+    "publishedAt": "2026-05-05T22:15:00Z",
+    "summary": "A sophisticated cyberattack has targeted multiple major banks and financial institutions, potentially compromising sensitive customer data. Security experts are calling it one of the most significant breaches in recent years.",
+    "content": "The attack, which appears to have originated from multiple international sources, targeted the core banking systems of at least six major financial institutions. The FBI and cybersecurity agencies have been notified and are actively investigating the incident.\n\nBanks affected include three of the top ten largest in the country. Customers are being advised to monitor their accounts for suspicious activity. 'This is a wake-up call for the entire financial sector,' said cybersecurity expert Dr. Sarah Williams.",
+    "tags": ["cyberattack", "breaking", "security"],
+    "selectors": { "title": "h1" },
+    "sensitive": true,
+    "sensitiveReasons": ["breaking"],
+    "failOnce": true,
+    "slowResponse": false
+  },
+  {
+    "id": 4,
+    "title": "Inflation Data Surprises Economists",
+    "author": "David Kim",
+    "publishedAt": "2026-05-04T11:00:00Z",
+    "summary": "New inflation figures released today have surprised economists, with consumer prices rising more slowly than anticipated, potentially influencing central bank policy decisions in the coming months.",
+    "content": "The Consumer Price Index (CPI) rose just 0.2% month-over-month, well below the 0.4% that economists had forecast. Core inflation, which excludes volatile food and energy prices, came in at 0.3%, also below expectations.\n\n'The inflation picture is improving faster than we anticipated,' said Federal Reserve Chair Jerome Powell in a prepared statement. Markets reacted positively to the news, with bond yields falling and stock futures pointing to a higher open.",
+    "tags": ["inflation", "economy", "prices"],
+    "selectors": { "title": "h1" },
+    "sensitive": false,
+    "sensitiveReasons": [],
+    "failOnce": false,
+    "slowResponse": true
+  }
+]
