@@ -53,15 +53,30 @@ So sánh theo thực tế demo trong repo này, ưu tiên **chạy thử nhanh, 
 
 ### 11. Security / Governance / Audit & Secrets
 - **Trigger.dev**: Có thể self-host hoàn toàn trong internal network, tránh cloud control plane. Phù hợp với small dev-centric team cần code-first workflow. Tuy nhiên built-in governance/security features khá hạn chế so với enterprise platform: không có RBAC mạnh, audit/governance cơ bản, không có dedicated secrets backend mặc định. Nếu dùng Trigger.dev Cloud thay vì self-host, credentials vẫn có thể giữ ở internal browser service riêng; thứ còn đi ra ngoài thường là payload/log/output metadata nếu bạn không sanitize.
-- **Kestra**: Cũng self-host được trong company network, **không cần fork repo**. localhost hôm nay chỉ là self-host ở mức dev; production self-host vẫn cần persistence, auth, backup, TLS, access control, logging policy, network isolation. OSS có thể tự host và orchestrate internal websites về mặt kỹ thuật. Tuy nhiên OSS thiếu nhiều governance/security features quan trọng cho môi trường multi-user/multi-team: RBAC depth, audit logs, enterprise-grade secrets backend, native HumanTask assignment. Enterprise là nơi Kestra thực sự mạnh cho governed internal operations. Nếu Kestra chỉ orchestrate và gọi một browser automation service riêng, credentials/passwords không cần sống trong Kestra; nhưng logs, outputs, screenshots, HTML, và payloads vẫn có thể đi vào Kestra nếu bạn đẩy chúng vào execution/logs.
+- **Kestra**: Cũng self-host được trong company network, **không cần fork repo**. localhost hôm nay chỉ là self-host ở mức dev; production self-host vẫn cần persistence, auth, backup, TLS, access control, logging policy, network isolation. OSS có thể tự host và orchestrate internal websites về mặt kỹ thuật. Tuy nhiên OSS có basic auth only — real RBAC, audit logs, advanced secrets backends, native HumanTask assignment đều là Enterprise. Enterprise là nơi Kestra thực sự mạnh cho governed internal operations. Nếu Kestra chỉ orchestrate và gọi một browser automation service riêng, credentials/passwords không cần sống trong Kestra; nhưng logs, outputs, screenshots, HTML, và payloads vẫn có thể đi vào Kestra nếu bạn đẩy chúng vào execution/logs.
 
 > **Self-host ≠ zero ops**: `localhost` chạy dev hôm nay không có nghĩa là production self-host cũng đơn giản vậy. Production vẫn cần hardening: auth, secrets management, backup, TLS, RBAC/audit (nếu yêu cầu), network isolation. Cả hai tool đều không yêu cầu fork repo — official images là đủ trừ khi bạn cần thay đổi core behavior sâu.
 >
 > **Internal company websites — security model**: Nếu orchestrator chỉ gọi một browser automation service riêng biệt (qua HTTP), thì credentials/passwords **không cần sống trong Trigger.dev hay Kestra** — chúng chỉ cần ở browser service. Tuy nhiên payload, output, và logs **vẫn có thể leak thông tin** nếu không được sanitize trước khi ghi vào orchestrator.
 
-### 12. AI fallback / self-healing
-- **Trigger.dev**: Khá mạnh. Retry và wait token cho phép tự healing khi có lỗi (retry với corrected input). Chưa có AI runtime built-in nhưng dễ kết hợp external AI service qua code.
-- **Kestra**: Khá mạnh. Conditional flow và retry cho phép logic healing cơ bản. Chưa có AI dedicated feature.
+### 12. AI integration / runtime / agent orchestration
+
+- **Trigger.dev**: Không có "AI Agent task" built-in kiểu declarative, nhưng có **tích hợp AI SDK mạnh nhất trong loại hình durable task platform**:
+  - `@trigger.dev/sdk/ai` — `chatTask()`, `pipeChat()` cho Vercel AI SDK chat transport
+  - `@trigger.dev/sdk/chat` — `TriggerChatTransport` cho `useChat` hook; có thể dùng Trigger.dev task làm backend chat realtime
+  - **Realtime Streams v2** — pipe AI SDK stream trực tiếp từ task ra frontend (unlimited chunks, 300 MiB, 28-day retention)
+  - **Input Streams** (4.4.2+) — gửi dữ liệu vào task đang chạy từ React hoặc backend (`.wait()`, `.on()`, `.once()`, `.peek()`)
+  - Hỗ trợ AI SDK 4/5/6 (gồm Agent, ToolLoopAgent, MCP)
+  - Cách tiếp cận: **code-first** — bạn viết TypeScript + AI SDK, tận dụng tối đa flexibility
+  - Không có built-in memory/RAG/MCP client tools — phải tự code hoặc dùng thư viện ngoài
+- **Kestra**: Có **AI Agent declarative built-in** (`io.kestra.plugin.ai.agent.AIAgent`) với:
+  - LLM providers đa dạng (OpenAI, Gemini, Claude, Bedrock, DeepSeek, Ollama...)
+  - Memory (KV Store, Redis), Content Retrievers cho RAG (EmbeddingStore, Tavily...)
+  - Tools: web search, code execution, MCP clients (Docker/Sse/Stdio/StreamableHttp), gọi flow/task Kestra khác
+  - **AI Copilot** — sinh flow YAML từ ngôn ngữ tự nhiên (Enterprise cho full providers; OSS chỉ Gemini)
+  - **Agent Skills** — tri thức cho AI coding agent bên ngoài
+  - Cách tiếp cận: **declarative-first** — cấu hình agent trong YAML, ít code hơn, nhiều built-in primitives hơn
+- **Kết luận cho demo này**: Cả hai đều đủ để gọi LLM trong workflow. Nếu bạn muốn **code-first, chat transport realtime, streaming token ra frontend** → Trigger.dev mạnh hơn. Nếu bạn muốn **declarative AI agent, RAG, MCP tools, Copilot sinh flow** → Kestra có hệ sinh thái AI hoàn chỉnh hơn. Demo này không dùng AI đủ sâu để thấy khác biệt lớn — cả hai đều làm được "gọi LLM và xử lý kết quả".
 
 ### 13. Learning curve
 - **Trigger.dev**: Dễ. TypeScript-native, API quen thuộc với bất kỳ dev Node nào. Chỉ cần biết TS + Trigger.dev SDK.
@@ -75,7 +90,11 @@ So sánh theo thực tế demo trong repo này, ưu tiên **chạy thử nhanh, 
 - **Trigger.dev**: Code-first JS/TS với `task()` từ `@trigger.dev/sdk`. Cần tài khoản cloud + project ref; local dev kết nối cloud. Test bằng `npm run trigger:run`.
 - **Kestra**: Config-first YAML. Ít code nhất nếu gọi HTTP service. Cần Docker; phải dùng `host.docker.internal:3100`; upload/save YAML vào Kestra.
 
-### 16. Recommended Architecture
+### 16. MCP / AI coding workflow / rules support
+- **Trigger.dev**: Có một ưu điểm rất đáng chú ý cho team đang dùng AI coding tool. Khi `init`, Trigger.dev có thể hỏi luôn việc cài **MCP server** và cài **rules cho coding agent** (ví dụ AGENTS.md / OpenCode / Codex-style workflow). Điều này giúp AI agent hiểu Trigger.dev tốt hơn ngay từ đầu và giảm công sức tự viết guideline/tooling.
+- **Kestra**: Kestra cũng có những AI onboarding/authoring aids: Product Tour, No Code Editor / Playground, AI Copilot & Agent Skills. Kết luận: Trigger.dev vẫn integrated vào AI coding workflow hơn, nhưng Kestra không còn “không có gì comparable”.
+
+### 17. Recommended Architecture
 - **Trigger.dev – 3 mô hình triển khai thực tế:**
   1. **Cloud + browser chạy trực tiếp trong `task()`**: nhanh nhất, DX tốt nhất, log hiện tự nhiên trên dashboard; nhưng credentials/browser session nằm trên hạ tầng cloud của Trigger.dev → không hợp cho website nội bộ nhạy cảm.
   2. **Trigger.dev Cloud + browser automation service riêng**: orchestrator chạy trên cloud, browser thật chạy trong service nội bộ. Ưu điểm: giữ credential/session trong mạng công ty; Nhược: phải làm `log bridge`, payload/output/log cần sanitize kỹ, tăng complexity. Phù hợp với mức nhạy cảm trung bình.
@@ -88,18 +107,14 @@ So sánh theo thực tế demo trong repo này, ưu tiên **chạy thử nhanh, 
   - Muốn **ít hệ thống nhất + code-first mạnh** → Trigger.dev self-host/internal cloud + task chạy browser trực tiếp.
   - Muốn **orchestration platform rõ ràng, operator UI mạnh, nhiều flow hotel lâu dài** → Kestra self-host + browser automation service riêng.
 
-### 17. Realtime logs khi browser chạy ở service riêng
+### 18. Realtime logs khi browser chạy ở service riêng
 - **Trigger.dev**: Làm được, nhưng phải custom. Pattern tốt nhất là browser service phát structured events/logs (polling endpoint, webhook, SSE, WebSocket) và task Trigger.dev làm **log bridge**: poll/callback → `logger.info()` / metadata / stream lại vào run. Nếu browser chạy trực tiếp trong task Trigger.dev thì đây là đường sạch nhất để có realtime logs ngay trên dashboard.
 - **Kestra**: Cũng làm được, nhưng nên coi Kestra là execution dashboard chứ không phải log platform tự nhiên cho stdout của service ngoài. Pattern phù hợp: browser service có `GET /jobs/{id}` hoặc callback progress → Kestra poll/nhận update → ghi milestone/progress/log vào execution logs. Nếu bạn insist xem gần như toàn bộ logs trên dashboard, Kestra vẫn làm được nhưng cần log bridge rõ ràng và dashboard sẽ rất noisy.
 - **Điểm quan trọng**: nếu bạn không muốn có log system riêng, thì browser service phải emit **structured log events** để orchestrator ghi lại. Đừng mong orchestrator tự nghe stdout của service ngoài.
 
-### 18. Self-host thực tế có nghĩa là gì
+### 19. Self-host thực tế có nghĩa là gì
 - **Trigger.dev**: Chạy localhost/dev hôm nay đã được tính là self-host về mặt kỹ thuật. Nhưng production self-host đòi hỏi nhiều hơn "container đang chạy trên server của mình": phải có persistence, auth, secret handling, backup, access control, logging policy, network boundaries. **Không cần fork repo** — official images/deploy paths đủ dùng, trừ khi bạn cần thay đổi core behavior.
 - **Kestra**: Cũng vậy — localhost/dev là self-host về mặt kỹ thuật. Production self-host cần hardening tương tự: persistence, auth, secrets, backup, access control, logging, network isolation. **Không cần fork repo.** OSS self-host được, nhưng thiếu governance features cho multi-team production (xem criterion 11).
-
-### 19. Current status trong repo
-- **Trigger.dev**: ✅ Đã implement `trigger/trigger.js`, `trigger.config.mjs`, manual + scheduled task, idempotency, waitpoint approval.
-- **Kestra**: ✅ Đã implement `kestra/flows/news_scrape_flow.yaml` và `news_scheduled_scan.yaml`, approval pause, schedule, logs.
 
 ---
 

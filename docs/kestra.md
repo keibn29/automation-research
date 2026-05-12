@@ -100,6 +100,10 @@ Kestra UI có các tab chính:
 - **Logs** — log hệ thống
 - **Namespaces** — namespace management
 
+> **Lưu ý — authentication trên Kestra OSS hiện đại**: Ở các phiên bản gần đây của Kestra OSS, lần đầu vào UI sẽ yêu cầu tạo tài khoản admin và đăng nhập (basic auth). Đây là behavior mặc định — bạn sẽ thấy màn hình setup để tạo credentials. Sau khi tạo, tất cả API và UI đều yêu cầu basic auth.
+>
+> Điều này có nghĩa: Kestra OSS **không có RBAC** — chỉ có basic auth (admin user). Real RBAC, audit logs, advanced secrets backends là tính năng Enterprise.
+
 ### 4. Upload flows vào Kestra
 
 **Cách 1 — Qua UI (dễ nhất):**
@@ -243,13 +247,13 @@ curl -X POST http://localhost:3100/api/admin/reset
 6. Để approve:
    - Click vào task `pause_approval` (đang PAUSED)
    - Click nút **Resume**
-   - Flow tiếp tục, task `return_approved` chạy
+   - Ở Kestra hiện đại, `Pause` hỗ trợ **`onResume` inputs**: bạn có thể cấu hình flow để thu thập structured values khi resume (ví dụ: approve/reject boolean + notes). Flow tiếp tục, task `return_approved` chạy
    - Kết quả: `{ ..., approval: "approved" }`
 
 7. Để reject (cách khác):
    - Click **Kill** ở execution level
    - Execution kết thúc với status **KILLED**
-   - Không có return payload — đây là limitation của Kestra Pause
+   - Không có return payload — đây là limitation của Kestra Pause nếu không dùng `onResume` inputs
 
 **Test với `cyberattack` (fail-once + approval):**
 
@@ -459,7 +463,11 @@ news_scheduled_scan()
 - Nếu Kestra container không chạy, cron schedule không được đánh thức
 - Sau khi start lại Kestra, schedule tự động bắt lại
 
-### 7. Không có retry policy trên HTTP tasks
+### 7. Kestra 1.0+ có AI features
+- Từ 1.0+, Kestra có **AI Copilot** (hỗ trợ tạo flow bằng AI), **AI Agents** (`io.kestra.plugin.ai.agent.AIAgent`), plugin-ai ecosystem, MCP server & agent skills.
+- Nếu bạn quan tâm đến AI-assisted orchestration, Kestra không còn "không có AI" — đã có dedicated AI capabilities.
+
+### 8. Không có retry policy trên HTTP tasks
 
 - Mặc định, `Request` task fail ngay nếu HTTP error
 - Có thể cấu hình `options.allowFailed: true` + `retry` property để retry
